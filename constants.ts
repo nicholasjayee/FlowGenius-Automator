@@ -74,8 +74,38 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     outputs: 1,
     color: 'border-sky-500 shadow-sky-500/20'
   },
+  {
+    type: NodeType.ACTION_G_FORMS_RESPONSE,
+    label: 'Get Form Responses',
+    category: Category.GOOGLE,
+    description: 'Retrieve latest responses from a Form',
+    iconName: 'ClipboardList',
+    inputs: 1,
+    outputs: 1,
+    color: 'border-violet-500 shadow-violet-500/20'
+  },
 
   // Integrations
+  {
+    type: NodeType.ACTION_EMAIL,
+    label: 'Send Email',
+    category: Category.INTEGRATION,
+    description: 'Send an email to a recipient',
+    iconName: 'Mail',
+    inputs: 1,
+    outputs: 1,
+    color: 'border-cyan-500 shadow-cyan-500/20'
+  },
+  {
+    type: NodeType.ACTION_SLACK,
+    label: 'Send Slack',
+    category: Category.INTEGRATION,
+    description: 'Send a message to a Slack channel',
+    iconName: 'Slack',
+    inputs: 1,
+    outputs: 1,
+    color: 'border-fuchsia-500 shadow-fuchsia-500/20'
+  },
   {
     type: NodeType.ACTION_WHATSAPP,
     label: 'Send WhatsApp',
@@ -151,6 +181,16 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     color: 'border-orange-500 shadow-orange-500/20'
   },
   {
+    type: NodeType.LOGIC_SWITCH,
+    label: 'Switch/Case',
+    category: Category.LOGIC,
+    description: 'Route flow based on value',
+    iconName: 'GitBranch', // Using GitBranch as 'Switch' isn't in Lucide standard set, fits logic
+    inputs: 1,
+    outputs: 3, // Default, Case 1, Case 2
+    color: 'border-orange-500 shadow-orange-500/20'
+  },
+  {
     type: NodeType.LOGIC_DELAY,
     label: 'Delay',
     category: Category.LOGIC,
@@ -159,6 +199,16 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     inputs: 1,
     outputs: 1,
     color: 'border-amber-500 shadow-amber-500/20'
+  },
+  {
+    type: NodeType.LOGIC_ERROR_HANDLER,
+    label: 'Error Handler',
+    category: Category.LOGIC,
+    description: 'Catch errors from previous nodes',
+    iconName: 'ShieldBan',
+    inputs: 1,
+    outputs: 1,
+    color: 'border-rose-500 shadow-rose-500/20'
   },
   {
     type: NodeType.MATH_ADD,
@@ -172,6 +222,26 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
   },
 
   // Utility
+  {
+    type: NodeType.UTILITY_TEXT_INPUT,
+    label: 'Text Input',
+    category: Category.UTILITY,
+    description: 'Provide text input to the workflow',
+    iconName: 'Keyboard',
+    inputs: 0,
+    outputs: 1,
+    color: 'border-slate-400 shadow-slate-400/20'
+  },
+  {
+    type: NodeType.UTILITY_FILE_UPLOAD,
+    label: 'File Upload',
+    category: Category.UTILITY,
+    description: 'Upload a file to the workflow',
+    iconName: 'UploadCloud',
+    inputs: 0,
+    outputs: 1,
+    color: 'border-slate-400 shadow-slate-400/20'
+  },
   {
     type: NodeType.TERMINATOR,
     label: 'End Workflow',

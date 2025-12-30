@@ -6,15 +6,22 @@ export enum NodeType {
   ACTION_G_SHEETS = 'action_g_sheets',
   ACTION_G_SHEETS_CREATE = 'action_g_sheets_create',
   ACTION_G_CALENDAR_EVENT = 'action_g_calendar_event',
+  ACTION_G_FORMS_RESPONSE = 'action_g_forms_response',
+  ACTION_EMAIL = 'action_email',
+  ACTION_SLACK = 'action_slack',
   ACTION_WHATSAPP = 'action_whatsapp',
   ACTION_WHATSAPP_TEMPLATE = 'action_whatsapp_template',
   ACTION_GITHUB_ISSUE = 'action_github_issue',
   ACTION_GITHUB_ACTION = 'action_github_action',
   ACTION_SCRAPE = 'action_scrape',
   LOGIC_IF = 'logic_if',
+  LOGIC_SWITCH = 'logic_switch',
   LOGIC_DELAY = 'logic_delay',
+  LOGIC_ERROR_HANDLER = 'logic_error_handler',
   MATH_ADD = 'math_add',
   AI_GEMINI = 'ai_gemini',
+  UTILITY_TEXT_INPUT = 'utility_text_input',
+  UTILITY_FILE_UPLOAD = 'utility_file_upload',
   TERMINATOR = 'terminator'
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -20,7 +20,8 @@ import Console from './components/Console';
 import { NODE_DEFINITIONS, INITIAL_NODES, INITIAL_EDGES } from './constants';
 import { NodeType, LogEntry, WorkflowNodeData } from './types';
 import { generateContent } from './services/geminiService';
-import { Play, Loader2 } from 'lucide-react';
+import { Play, Loader2, Undo, Redo } from 'lucide-react';
+import { useUndoRedo } from './hooks/useUndoRedo';
 
 const nodeTypes = NODE_DEFINITIONS.reduce((acc, def) => {
   acc[def.type] = CustomNode;
@@ -39,6 +40,29 @@ const Flow = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Undo/Redo Hook
+  const { undo, redo, takeSnapshot, canUndo, canRedo } = useUndoRedo(nodes, edges, setNodes as any, setEdges as any);
+
+  // Keyboard Shortcuts for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+        if (event.shiftKey) {
+          canRedo && redo();
+        } else {
+          canUndo && undo();
+        }
+        event.preventDefault();
+      } else if ((event.metaKey || event.ctrlKey) && event.key === 'y') {
+        canRedo && redo();
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, canUndo, canRedo]);
+
   const addLog = (nodeId: string, nodeLabel: string, message: string, type: LogEntry['type']) => {
     setLogs(prev => [...prev, {
       id: Math.random().toString(36),
@@ -51,8 +75,11 @@ const Flow = () => {
   };
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#64748b', strokeWidth: 2 } }, eds)),
-    [setEdges]
+    (params: Connection) => {
+      takeSnapshot(); // Snapshot before connecting
+      setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#64748b', strokeWidth: 2 } }, eds));
+    },
+    [setEdges, takeSnapshot]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -63,6 +90,12 @@ const Flow = () => {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+
+      if (!reactFlowInstance) {
+        return;
+      }
+
+      takeSnapshot(); // Snapshot before dropping new node
 
       const type = event.dataTransfer.getData('application/reactflow/type');
       const label = event.dataTransfer.getData('application/reactflow/label');
@@ -80,14 +113,31 @@ const Flow = () => {
         id: getId(),
         type,
         position,
-        data: { label, status: 'idle' },
+        data: { 
+          label: label || 'New Node', 
+          status: 'idle',
+          config: {} 
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
-      addLog(newNode.id, label, 'Node added to canvas', 'info');
+      addLog(newNode.id, label || type, 'Node added to canvas', 'info');
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, takeSnapshot]
   );
+
+  // Event handlers for snapshots
+  const onNodeDragStart = useCallback(() => {
+    takeSnapshot();
+  }, [takeSnapshot]);
+
+  const onNodesDelete = useCallback(() => {
+    takeSnapshot();
+  }, [takeSnapshot]);
+
+  const onEdgesDelete = useCallback(() => {
+    takeSnapshot();
+  }, [takeSnapshot]);
 
   // --- EXECUTION ENGINE ---
   const executeWorkflow = async () => {
@@ -142,7 +192,6 @@ const Flow = () => {
             case NodeType.AI_GEMINI:
                 addLog(node.id, node.data.label, 'Processing with Gemini...', 'info');
                 // We use a mock prompt because we don't have a real input UI for this demo
-                // In a real app, we would read `node.data.prompt`
                 const prompt = "Analyze the previous step and suggest an improvement."; 
                 const result = await generateContent(prompt);
                 outputData = result;
@@ -171,7 +220,25 @@ const Flow = () => {
                 outputData = "https://calendar.google.com/event?id=mock-event-id";
                 addLog(node.id, node.data.label, `Event created: 'Sync Meeting' ${outputData}`, 'success');
                 break;
+
+            case NodeType.ACTION_G_FORMS_RESPONSE:
+                await delay(1000);
+                outputData = '[{"question": "Email", "answer": "user@example.com"}]';
+                addLog(node.id, node.data.label, 'Retrieved 1 new response from Form.', 'success');
+                break;
+
+            case NodeType.ACTION_EMAIL:
+                await delay(800);
+                addLog(node.id, node.data.label, 'Email sent to recipient@example.com', 'success');
+                outputData = "MessageID: <mock-email-123>";
+                break;
             
+            case NodeType.ACTION_SLACK:
+                await delay(800);
+                addLog(node.id, node.data.label, 'Message sent to #general', 'success');
+                outputData = "SlackMsgID: 12345.67890";
+                break;
+
             case NodeType.ACTION_WHATSAPP:
                 await delay(800);
                 addLog(node.id, node.data.label, 'Message sent to +123456789', 'success');
@@ -211,6 +278,43 @@ const Flow = () => {
                 await delay(2000);
                 break;
 
+            case NodeType.LOGIC_ERROR_HANDLER:
+                await delay(300);
+                addLog(node.id, node.data.label, 'Monitoring execution. No upstream errors caught.', 'success');
+                outputData = "No Error";
+                break;
+            
+            case NodeType.LOGIC_SWITCH:
+                await delay(300);
+                // Randomly select a path to simulate dynamic logic
+                const rand = Math.random();
+                let selectedPath = 'default';
+                if (rand > 0.66) selectedPath = 'case1';
+                else if (rand > 0.33) selectedPath = 'case2';
+                
+                outputData = selectedPath;
+                addLog(node.id, node.data.label, `Condition matched: ${selectedPath}`, 'success');
+                break;
+
+            case NodeType.UTILITY_TEXT_INPUT:
+                await delay(200);
+                const userText = node.data.config?.text || "Default Text";
+                outputData = userText;
+                addLog(node.id, node.data.label, `User input: "${userText.substring(0, 30)}${userText.length > 30 ? '...' : ''}"`, 'success');
+                break;
+            
+            case NodeType.UTILITY_FILE_UPLOAD:
+                await delay(500);
+                const fileName = node.data.config?.fileName;
+                if (fileName) {
+                    outputData = `https://storage.googleapis.com/uploads/${fileName}`;
+                    addLog(node.id, node.data.label, `File uploaded: ${fileName}`, 'success');
+                } else {
+                    outputData = "No File";
+                    addLog(node.id, node.data.label, `No file selected. Using default.`, 'warning');
+                }
+                break;
+
             default:
                 await delay(500);
                 addLog(node.id, node.data.label, 'Step completed successfully.', 'success');
@@ -219,12 +323,31 @@ const Flow = () => {
         // Update status to success and store result
         updateNodeData(node.id, { status: 'success', result: outputData });
 
-        // Find next nodes
-        const outgoingEdges = edges.filter(e => e.source === node.id);
+        // Find next nodes based on filtering logic
+        let outgoingEdges = edges.filter(e => e.source === node.id);
+
+        // Branching Logic Filter
+        if (node.type === NodeType.LOGIC_SWITCH) {
+            // Only follow edges connected to the active handle
+            const activeHandle = outputData; // 'default', 'case1', or 'case2'
+            outgoingEdges = outgoingEdges.filter(e => 
+                e.sourceHandle === activeHandle || 
+                (!e.sourceHandle && activeHandle === 'default') // handle default implied
+            );
+        } else if (node.type === NodeType.LOGIC_IF) {
+             // Mock IF logic: 50/50 chance
+             const isTrue = Math.random() > 0.5;
+             addLog(node.id, node.data.label, `Condition evaluation: ${isTrue}`, 'info');
+             const targetHandle = isTrue ? null : 'false'; // null usually implies default/bottom
+             outgoingEdges = outgoingEdges.filter(e => 
+                 e.sourceHandle === targetHandle || 
+                 (!e.sourceHandle && isTrue)
+             );
+        }
+
         for (const edge of outgoingEdges) {
             const nextNode = nodes.find(n => n.id === edge.target);
             if (nextNode) {
-                // Pass data conceptually (not fully implemented in state for this demo)
                 await processNode(nextNode);
             }
         }
@@ -260,20 +383,45 @@ const Flow = () => {
       
       {/* Top Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6 shrink-0">
-        <div className="text-white font-medium">Untitled Workflow</div>
-        <button
-            onClick={executeWorkflow}
-            disabled={isRunning}
-            className={`
-                flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all
-                ${isRunning 
-                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'}
-            `}
-        >
-            {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
-            {isRunning ? 'Running...' : 'Run Workflow'}
-        </button>
+        <div className="text-white font-medium flex items-center gap-2">
+            <span>Untitled Workflow</span>
+        </div>
+        
+        <div className="flex items-center gap-2">
+             {/* Undo / Redo Controls */}
+            <div className="flex items-center gap-1 mr-4 bg-slate-800 rounded-md p-1 border border-slate-700">
+                <button 
+                    onClick={undo} 
+                    disabled={!canUndo}
+                    className={`p-1.5 rounded transition-colors ${canUndo ? 'text-slate-300 hover:text-white hover:bg-slate-700' : 'text-slate-600 cursor-not-allowed'}`}
+                    title="Undo (Ctrl+Z)"
+                >
+                    <Undo size={16} />
+                </button>
+                <button 
+                    onClick={redo} 
+                    disabled={!canRedo}
+                    className={`p-1.5 rounded transition-colors ${canRedo ? 'text-slate-300 hover:text-white hover:bg-slate-700' : 'text-slate-600 cursor-not-allowed'}`}
+                    title="Redo (Ctrl+Y)"
+                >
+                    <Redo size={16} />
+                </button>
+            </div>
+
+            <button
+                onClick={executeWorkflow}
+                disabled={isRunning}
+                className={`
+                    flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all
+                    ${isRunning 
+                        ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'}
+                `}
+            >
+                {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
+                {isRunning ? 'Running...' : 'Run Workflow'}
+            </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -290,6 +438,9 @@ const Flow = () => {
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeDragStart={onNodeDragStart}
+            onNodesDelete={onNodesDelete}
+            onEdgesDelete={onEdgesDelete}
             nodeTypes={nodeTypes}
             fitView
             snapToGrid

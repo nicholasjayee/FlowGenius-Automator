@@ -62,6 +62,7 @@ const Sidebar = () => {
                     return (
                       <div
                         key={node.type}
+                        title={node.description}
                         onDragStart={(event) => onDragStart(event, node.type, node.label)}
                         draggable
                         className={`

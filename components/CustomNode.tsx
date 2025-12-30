@@ -1,11 +1,12 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 import * as LucideIcons from 'lucide-react';
 import { NODE_DEFINITIONS } from '../constants';
 import { NodeType } from '../types';
 
-const CustomNode = ({ data, type, selected }: NodeProps) => {
+const CustomNode = ({ id, data, type, selected }: NodeProps) => {
   const definition = NODE_DEFINITIONS.find(def => def.type === type);
+  const { setNodes } = useReactFlow();
   
   // Dynamic Icon rendering
   const IconComponent = definition ? (LucideIcons as any)[definition.iconName] : LucideIcons.Box;
@@ -21,8 +22,51 @@ const CustomNode = ({ data, type, selected }: NodeProps) => {
     }
   };
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      setNodes((nds) => nds.map((node) => {
+          if (node.id === id) {
+              return {
+                  ...node,
+                  data: {
+                      ...node.data,
+                      config: {
+                          ...node.data.config,
+                          text: newValue
+                      }
+                  }
+              };
+          }
+          return node;
+      }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNodes((nds) => nds.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              config: {
+                ...node.data.config,
+                fileName: file.name,
+                fileSize: file.size
+              }
+            }
+          };
+        }
+        return node;
+      }));
+    }
+  };
+
   return (
-    <div className={`
+    <div 
+      title={definition?.description}
+      className={`
       relative min-w-[200px] bg-slate-800 rounded-lg border-2 
       ${selected ? 'border-blue-400 ring-2 ring-blue-400/30' : borderColor} 
       ${data.status === 'running' ? 'ring-2 ring-yellow-400/50' : ''}
@@ -54,6 +98,38 @@ const CustomNode = ({ data, type, selected }: NodeProps) => {
         <p className="text-xs text-slate-400 leading-relaxed mb-2">
             {definition?.description}
         </p>
+
+        {/* Special Input: Text Area for User Input */}
+        {type === NodeType.UTILITY_TEXT_INPUT && (
+            <textarea
+                className="nodrag w-full h-20 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500 resize-none mb-2"
+                placeholder="Type here..."
+                value={data.config?.text || ''}
+                onChange={handleTextChange}
+            />
+        )}
+
+        {/* Special Input: File Upload */}
+        {type === NodeType.UTILITY_FILE_UPLOAD && (
+          <div className="mb-2">
+             <label className="block w-full text-xs text-slate-400 bg-slate-900 border border-slate-700 border-dashed rounded p-3 text-center cursor-pointer hover:border-blue-500 hover:text-blue-400 transition-all">
+                <input 
+                  type="file" 
+                  className="hidden nodrag" 
+                  onChange={handleFileChange}
+                />
+                <div className="flex flex-col items-center gap-1">
+                   <LucideIcons.UploadCloud size={20} />
+                   <span>{data.config?.fileName || "Choose File"}</span>
+                </div>
+             </label>
+             {data.config?.fileName && (
+                 <div className="mt-1 text-[10px] text-emerald-500 text-center">
+                    {(data.config.fileSize / 1024).toFixed(1)} KB selected
+                 </div>
+             )}
+          </div>
+        )}
         
         {/* Mock Visualization of Internal Data */}
         {data.result && (
@@ -63,8 +139,8 @@ const CustomNode = ({ data, type, selected }: NodeProps) => {
         )}
       </div>
 
-      {/* Outputs */}
-      {definition && definition.outputs > 0 && (
+      {/* Default Outputs */}
+      {definition && definition.outputs > 0 && type !== NodeType.LOGIC_SWITCH && (
          <Handle 
            type="source" 
            position={Position.Bottom} 
@@ -72,7 +148,7 @@ const CustomNode = ({ data, type, selected }: NodeProps) => {
          />
       )}
       
-      {/* Special Logic Handle for Conditionals */}
+      {/* Special Logic: If */}
       {type === NodeType.LOGIC_IF && (
           <Handle
             id="false"
@@ -81,6 +157,36 @@ const CustomNode = ({ data, type, selected }: NodeProps) => {
             className="!bg-red-400 !w-3 !h-3 !border-2 !border-slate-800 top-[70%]"
             title="False Path"
           />
+      )}
+
+      {/* Special Logic: Switch */}
+      {type === NodeType.LOGIC_SWITCH && (
+        <>
+           {/* Default Path */}
+           <Handle 
+             id="default"
+             type="source" 
+             position={Position.Bottom} 
+             className="!bg-slate-400 !w-3 !h-3 !border-2 !border-slate-800"
+             title="Default" 
+           />
+           {/* Case 1 */}
+           <Handle
+            id="case1"
+            type="source"
+            position={Position.Right}
+            className="!bg-blue-400 !w-3 !h-3 !border-2 !border-slate-800 top-[40%]"
+            title="Case 1"
+          />
+          {/* Case 2 */}
+          <Handle
+            id="case2"
+            type="source"
+            position={Position.Right}
+            className="!bg-purple-400 !w-3 !h-3 !border-2 !border-slate-800 top-[70%]"
+            title="Case 2"
+          />
+        </>
       )}
     </div>
   );
