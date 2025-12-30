@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
+import { Handle, Position, NodeProps, useReactFlow, NodeResizer } from 'reactflow';
 import * as LucideIcons from 'lucide-react';
 import { NODE_DEFINITIONS } from '../constants';
 import { NodeType } from '../types';
@@ -95,6 +95,82 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
       }));
   };
 
+  const handleLogicModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = e.target.value;
+      setNodes((nds) => nds.map((node) => {
+          if (node.id === id) {
+              return {
+                  ...node,
+                  data: {
+                      ...node.data,
+                      config: { ...node.data.config, logicMode: newValue }
+                  }
+              };
+          }
+          return node;
+      }));
+  };
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setNodes((nds) => nds.map((node) => {
+        if (node.id === id) {
+            return {
+                ...node,
+                data: {
+                    ...node.data,
+                    config: { ...node.data.config, apiKey: newValue }
+                }
+            };
+        }
+        return node;
+    }));
+  };
+
+  const handleGithubTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setNodes((nds) => nds.map((node) => {
+        if (node.id === id) {
+            return {
+                ...node,
+                data: {
+                    ...node.data,
+                    config: { ...node.data.config, githubToken: newValue }
+                }
+            };
+        }
+        return node;
+    }));
+  };
+
+  // Special Render for Folder Node
+  if (type === NodeType.UTILITY_FOLDER) {
+    return (
+      <>
+        <NodeResizer 
+          minWidth={200} 
+          minHeight={100} 
+          isVisible={selected} 
+          lineStyle={{ border: '1px solid #94a3b8' }} 
+          handleStyle={{ width: 10, height: 10, borderRadius: '50%', background: '#3b82f6' }}
+        />
+        <div className={`
+            w-full h-full min-w-[200px] min-h-[100px]
+            bg-slate-900/40 border-2 border-dashed border-slate-600 rounded-xl
+            flex flex-col
+            ${selected ? 'border-blue-400' : ''}
+            transition-colors
+        `}>
+             <div className="flex items-center gap-2 p-2 bg-slate-800/80 rounded-t-xl border-b border-slate-700/50 backdrop-blur-sm">
+                 {IconComponent && <IconComponent size={16} className="text-slate-400" />}
+                 <span className="text-xs font-semibold text-slate-300 tracking-wide uppercase">{data.label}</span>
+             </div>
+             <div className="flex-1" /> {/* Spacer */}
+        </div>
+      </>
+    );
+  }
+
   return (
     <div 
       title={definition?.description}
@@ -183,6 +259,50 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
                     onChange={handleUrlChange}
                 />
             </div>
+        )}
+
+        {/* Special Input: Logic IF */}
+        {type === NodeType.LOGIC_IF && (
+          <div className="mb-2">
+              <label className="text-[10px] text-slate-400 block mb-1">Branch Behavior</label>
+              <select
+                  className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  value={data.config?.logicMode || 'random'}
+                  onChange={handleLogicModeChange}
+              >
+                  <option value="random">Random (50/50)</option>
+                  <option value="true">Always True</option>
+                  <option value="false">Always False</option>
+              </select>
+          </div>
+        )}
+
+        {/* Special Input: Gemini AI API Key */}
+        {type === NodeType.AI_GEMINI && (
+          <div className="mb-2">
+              <label className="text-[10px] text-slate-400 block mb-1">API Key (Optional)</label>
+              <input
+                  type="password"
+                  className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-600"
+                  placeholder="Override env key..."
+                  value={data.config?.apiKey || ''}
+                  onChange={handleApiKeyChange}
+              />
+          </div>
+        )}
+
+        {/* Special Input: GitHub Token */}
+        {(type === NodeType.ACTION_GITHUB_ISSUE || type === NodeType.ACTION_GITHUB_ACTION) && (
+          <div className="mb-2">
+              <label className="text-[10px] text-slate-400 block mb-1">GitHub Token (PAT)</label>
+              <input
+                  type="password"
+                  className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-600"
+                  placeholder="ghp_..."
+                  value={data.config?.githubToken || ''}
+                  onChange={handleGithubTokenChange}
+              />
+          </div>
         )}
         
         {/* Mock Visualization of Internal Data */}

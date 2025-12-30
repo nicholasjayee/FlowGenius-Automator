@@ -23,6 +23,7 @@ export enum NodeType {
   AI_GEMINI = 'ai_gemini',
   UTILITY_TEXT_INPUT = 'utility_text_input',
   UTILITY_FILE_UPLOAD = 'utility_file_upload',
+  UTILITY_FOLDER = 'utility_folder',
   TERMINATOR = 'terminator'
 }
 

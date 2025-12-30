@@ -253,6 +253,16 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     color: 'border-slate-400 shadow-slate-400/20'
   },
   {
+    type: NodeType.UTILITY_FOLDER,
+    label: 'Folder',
+    category: Category.UTILITY,
+    description: 'Group nodes visually',
+    iconName: 'Folder',
+    inputs: 0,
+    outputs: 0,
+    color: 'border-slate-500 shadow-slate-500/20'
+  },
+  {
     type: NodeType.TERMINATOR,
     label: 'End Workflow',
     category: Category.UTILITY,

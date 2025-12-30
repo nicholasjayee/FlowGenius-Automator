@@ -193,7 +193,8 @@ const Flow = () => {
                 addLog(node.id, node.data.label, 'Processing with Gemini...', 'info');
                 // We use a mock prompt because we don't have a real input UI for this demo
                 const prompt = "Analyze the previous step and suggest an improvement."; 
-                const result = await generateContent(prompt);
+                const customApiKey = node.data.config?.apiKey;
+                const result = await generateContent(prompt, customApiKey);
                 outputData = result;
                 addLog(node.id, node.data.label, 'Gemini generated content.', 'success');
                 break;
@@ -252,12 +253,20 @@ const Flow = () => {
 
             case NodeType.ACTION_GITHUB_ISSUE:
                 await delay(1000);
+                const issueToken = node.data.config?.githubToken;
+                if (issueToken) {
+                    addLog(node.id, node.data.label, 'Authenticating with provided Personal Access Token...', 'info');
+                }
                 outputData = "Issue #101";
                 addLog(node.id, node.data.label, 'GitHub Issue #101 created successfully.', 'success');
                 break;
 
             case NodeType.ACTION_GITHUB_ACTION:
                 await delay(1200);
+                const actionToken = node.data.config?.githubToken;
+                if (actionToken) {
+                    addLog(node.id, node.data.label, 'Authenticating with provided Personal Access Token...', 'info');
+                }
                 addLog(node.id, node.data.label, 'GitHub Action workflow dispatched successfully.', 'success');
                 break;
 
@@ -306,6 +315,12 @@ const Flow = () => {
                 addLog(node.id, node.data.label, `Condition matched: ${selectedPath}`, 'success');
                 break;
 
+            case NodeType.LOGIC_IF:
+                await delay(200);
+                // Logging occurs in the filtering logic below
+                outputData = "Conditional Evaluated";
+                break;
+
             case NodeType.UTILITY_TEXT_INPUT:
                 await delay(200);
                 const userText = node.data.config?.text || "Default Text";
@@ -345,10 +360,17 @@ const Flow = () => {
                 (!e.sourceHandle && activeHandle === 'default') // handle default implied
             );
         } else if (node.type === NodeType.LOGIC_IF) {
-             // Mock IF logic: 50/50 chance
-             const isTrue = Math.random() > 0.5;
-             addLog(node.id, node.data.label, `Condition evaluation: ${isTrue}`, 'info');
-             const targetHandle = isTrue ? null : 'false'; // null usually implies default/bottom
+             const mode = node.data.config?.logicMode || 'random';
+             let isTrue = false;
+             
+             if (mode === 'true') isTrue = true;
+             else if (mode === 'false') isTrue = false;
+             else isTrue = Math.random() > 0.5;
+
+             addLog(node.id, node.data.label, `Condition (${mode}): ${isTrue ? 'True' : 'False'}`, 'info');
+             
+             const targetHandle = isTrue ? null : 'false'; // null usually implies default/bottom (True path)
+             
              outgoingEdges = outgoingEdges.filter(e => 
                  e.sourceHandle === targetHandle || 
                  (!e.sourceHandle && isTrue)
