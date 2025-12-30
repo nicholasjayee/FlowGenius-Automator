@@ -14,6 +14,7 @@ export enum NodeType {
   ACTION_GITHUB_ISSUE = 'action_github_issue',
   ACTION_GITHUB_ACTION = 'action_github_action',
   ACTION_SCRAPE = 'action_scrape',
+  ACTION_HTTP_REQUEST = 'action_http_request',
   LOGIC_IF = 'logic_if',
   LOGIC_SWITCH = 'logic_switch',
   LOGIC_DELAY = 'logic_delay',

@@ -63,6 +63,38 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
     }
   };
 
+  const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = e.target.value;
+      setNodes((nds) => nds.map((node) => {
+          if (node.id === id) {
+              return {
+                  ...node,
+                  data: {
+                      ...node.data,
+                      config: { ...node.data.config, method: newValue }
+                  }
+              };
+          }
+          return node;
+      }));
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setNodes((nds) => nds.map((node) => {
+          if (node.id === id) {
+              return {
+                  ...node,
+                  data: {
+                      ...node.data,
+                      config: { ...node.data.config, url: newValue }
+                  }
+              };
+          }
+          return node;
+      }));
+  };
+
   return (
     <div 
       title={definition?.description}
@@ -129,6 +161,28 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
                  </div>
              )}
           </div>
+        )}
+
+        {/* Special Input: HTTP Request */}
+        {type === NodeType.ACTION_HTTP_REQUEST && (
+            <div className="space-y-2 mb-2">
+                <select
+                    className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                    value={data.config?.method || 'GET'}
+                    onChange={handleMethodChange}
+                >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                <input
+                    className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-500"
+                    placeholder="https://api.example.com"
+                    value={data.config?.url || ''}
+                    onChange={handleUrlChange}
+                />
+            </div>
         )}
         
         {/* Mock Visualization of Internal Data */}

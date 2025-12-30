@@ -156,6 +156,16 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     outputs: 1,
     color: 'border-pink-500 shadow-pink-500/20'
   },
+  {
+    type: NodeType.ACTION_HTTP_REQUEST,
+    label: 'HTTP Request',
+    category: Category.INTEGRATION,
+    description: 'Make a generic HTTP request',
+    iconName: 'Network',
+    inputs: 1,
+    outputs: 1,
+    color: 'border-indigo-500 shadow-indigo-500/20'
+  },
 
   // AI
   {

@@ -267,6 +267,16 @@ const Flow = () => {
                 addLog(node.id, node.data.label, 'Scraped 45kb from URL', 'success');
                 break;
 
+            case NodeType.ACTION_HTTP_REQUEST:
+                await delay(1000);
+                const method = node.data.config?.method || 'GET';
+                const url = node.data.config?.url || 'https://api.example.com';
+                addLog(node.id, node.data.label, `Sending ${method} request to ${url}`, 'info');
+                // Mock success
+                outputData = `{"status": 200, "data": "Mock response from ${url}"}`;
+                addLog(node.id, node.data.label, `Request successful: 200 OK`, 'success');
+                break;
+
             case NodeType.MATH_ADD:
                 await delay(300);
                 outputData = "42"; // Mock math
