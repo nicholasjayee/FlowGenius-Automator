@@ -1,0 +1,5 @@
+{
+  "name": "FlowGenius Automator",
+  "description": "A powerful visual workflow automation builder. Connect Google Docs, GitHub, WhatsApp, and Web Scraping nodes with logic gates and Gemini AI to build complex automation pipelines.",
+  "requestFramePermissions": []
+}
