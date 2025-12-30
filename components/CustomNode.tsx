@@ -111,22 +111,6 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
       }));
   };
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setNodes((nds) => nds.map((node) => {
-        if (node.id === id) {
-            return {
-                ...node,
-                data: {
-                    ...node.data,
-                    config: { ...node.data.config, apiKey: newValue }
-                }
-            };
-        }
-        return node;
-    }));
-  };
-
   const handleGithubTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setNodes((nds) => nds.map((node) => {
@@ -274,20 +258,6 @@ const CustomNode = ({ id, data, type, selected }: NodeProps) => {
                   <option value="true">Always True</option>
                   <option value="false">Always False</option>
               </select>
-          </div>
-        )}
-
-        {/* Special Input: Gemini AI API Key */}
-        {type === NodeType.AI_GEMINI && (
-          <div className="mb-2">
-              <label className="text-[10px] text-slate-400 block mb-1">API Key (Optional)</label>
-              <input
-                  type="password"
-                  className="nodrag w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-600"
-                  placeholder="Override env key..."
-                  value={data.config?.apiKey || ''}
-                  onChange={handleApiKeyChange}
-              />
           </div>
         )}
 

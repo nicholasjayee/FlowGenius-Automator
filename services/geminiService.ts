@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
-export const generateContent = async (prompt: string, customApiKey?: string): Promise<string> => {
+export const generateContent = async (prompt: string): Promise<string> => {
   try {
-    const apiKey = customApiKey || process.env.API_KEY || '';
+    const apiKey = process.env.API_KEY;
     const model = 'gemini-3-flash-preview'; 
     
     // Fallback if no API key is present for demo purposes
@@ -12,7 +12,7 @@ export const generateContent = async (prompt: string, customApiKey?: string): Pr
       
 I have analyzed your request: "${prompt}".
       
-Since no API key was provided (either in environment variables or custom input), this is a placeholder response demonstrating where the AI content would appear. 
+Since no API key was provided in the environment variables, this is a placeholder response demonstrating where the AI content would appear. 
 
 In a real scenario, I would be generating complex text, code, or data structures here.`;
     }

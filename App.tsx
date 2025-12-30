@@ -34,7 +34,7 @@ const getId = () => `node_${id++}_${Date.now()}`;
 
 const Flow = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES);
+  const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>(INITIAL_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -169,7 +169,7 @@ const Flow = () => {
     addLog('system', 'System', 'Workflow execution finished.', 'success');
   };
 
-  const processNode = async (node: Node) => {
+  const processNode = async (node: Node<WorkflowNodeData>) => {
     // Update status to running
     updateNodeStatus(node.id, 'running');
 
@@ -193,8 +193,7 @@ const Flow = () => {
                 addLog(node.id, node.data.label, 'Processing with Gemini...', 'info');
                 // We use a mock prompt because we don't have a real input UI for this demo
                 const prompt = "Analyze the previous step and suggest an improvement."; 
-                const customApiKey = node.data.config?.apiKey;
-                const result = await generateContent(prompt, customApiKey);
+                const result = await generateContent(prompt);
                 outputData = result;
                 addLog(node.id, node.data.label, 'Gemini generated content.', 'success');
                 break;
@@ -280,6 +279,12 @@ const Flow = () => {
                 await delay(1000);
                 const method = node.data.config?.method || 'GET';
                 const url = node.data.config?.url || 'https://api.example.com';
+                
+                // Allow user to simulate error by putting "error" in the URL
+                if (url.includes('error')) {
+                    throw new Error(`Simulated HTTP 500 Error for ${url}`);
+                }
+
                 addLog(node.id, node.data.label, `Sending ${method} request to ${url}`, 'info');
                 // Mock success
                 outputData = `{"status": 200, "data": "Mock response from ${url}"}`;
@@ -299,8 +304,14 @@ const Flow = () => {
 
             case NodeType.LOGIC_ERROR_HANDLER:
                 await delay(300);
-                addLog(node.id, node.data.label, 'Monitoring execution. No upstream errors caught.', 'success');
-                outputData = "No Error";
+                const errorMsg = node.data.config?.errorContext;
+                if (errorMsg) {
+                    addLog(node.id, node.data.label, `Successfully caught: "${errorMsg}"`, 'success');
+                    outputData = `Handled: ${errorMsg}`;
+                } else {
+                    addLog(node.id, node.data.label, 'Executed without active error context.', 'warning');
+                    outputData = "No Error Context";
+                }
                 break;
             
             case NodeType.LOGIC_SWITCH:
@@ -380,6 +391,10 @@ const Flow = () => {
         for (const edge of outgoingEdges) {
             const nextNode = nodes.find(n => n.id === edge.target);
             if (nextNode) {
+                // SKIP Error Handler nodes during normal success execution
+                if (nextNode.type === NodeType.LOGIC_ERROR_HANDLER) {
+                    continue;
+                }
                 await processNode(nextNode);
             }
         }
@@ -387,6 +402,29 @@ const Flow = () => {
     } catch (err) {
         updateNodeStatus(node.id, 'error');
         addLog(node.id, node.data.label, `Error: ${(err as Error).message}`, 'error');
+
+        // Look for connected Error Handlers
+        const errorEdges = edges.filter(e => e.source === node.id);
+        for (const edge of errorEdges) {
+            const nextNode = nodes.find(n => n.id === edge.target);
+            if (nextNode && nextNode.type === NodeType.LOGIC_ERROR_HANDLER) {
+                 addLog('system', 'System', `Triggering Error Handler for ${node.data.label}`, 'info');
+                 
+                 const updatedErrorHandler = {
+                     ...nextNode,
+                     data: {
+                         ...nextNode.data,
+                         config: { ...nextNode.data.config, errorContext: (err as Error).message }
+                     }
+                 };
+
+                 // Update UI
+                 updateNodeData(nextNode.id, { config: updatedErrorHandler.data.config });
+                 
+                 // Execute Error Handler
+                 await processNode(updatedErrorHandler);
+            }
+        }
     }
   };
 
